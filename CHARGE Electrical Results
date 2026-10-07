@@ -1,0 +1,135 @@
+###########################################################################
+# PHOTODETECTOR ELECTRICAL RESULTS
+# Adaptado para CHARGE + Waveguide Photodetector
+###########################################################################
+
+clear;
+
+#--------------------------------------------------
+# POTENCIA OPTICA INCIDENTE EN EL Ge
+# (modificar con tu valor obtenido en FDTD)
+#--------------------------------------------------
+
+Popt_mW = 0.38;    # ejemplo: 40% de una fuente de 1 mW
+
+#--------------------------------------------------
+# RESULTADOS DEL SWEEP
+#--------------------------------------------------
+
+base = getresult("CHARGE","base");
+
+I = pinch(base.I);
+V = pinch(base.V_base);
+
+#--------------------------------------------------
+# AREA DE NORMALIZACION
+#--------------------------------------------------
+
+Lx = getnamed("simulation region","x span")*100;     # cm
+
+Ly = getnamed("CHARGE","norm length")*100;           # cm
+
+Area = Lx*Ly;                                        # cm^2
+
+? "Lx (cm) = " + num2str(Lx);
+? "Ly (cm) = " + num2str(Ly);
+? "Area (cm^2) = " + num2str(Area);
+
+#--------------------------------------------------
+# CORRIENTE Y DENSIDAD DE CORRIENTE
+#--------------------------------------------------
+
+J = I/Area*1000;      # mA/cm^2
+
+#--------------------------------------------------
+# GRAFICA COMPLETA DEL SWEEP
+#--------------------------------------------------
+
+plot(V,J,"Voltage (V)","Current Density (mA/cm^2)");
+legend("");
+
+#--------------------------------------------------
+# Jsc EN V = 0
+#--------------------------------------------------
+
+idx0 = find(V>=0);
+
+if(length(idx0)>0){
+    idx0 = idx0(1);
+    Jsc = -J(idx0);
+    Isc = -I(idx0);
+}else{
+    Jsc = NaN;
+    Isc = NaN;
+}
+
+#--------------------------------------------------
+# Voc
+#--------------------------------------------------
+
+idx_cross = find(J>=0);
+ 
+if(length(idx_cross)>0){
+ 
+idx = idx_cross(1);
+ 
+if(idx>1){
+slope = (J(idx)-J(idx-1))/(V(idx)-V(idx-1));
+Voc = V(idx-1)-J(idx-1)/slope;
+}else{
+Voc = V(idx);
+}
+ 
+}else{
+ 
+Voc = NaN;
+? "Voc not found in voltage sweep";
+ 
+}
+
+#--------------------------------------------------
+# POTENCIA ELECTRICA
+#--------------------------------------------------
+
+Pdens = abs(J*V);            # mW/cm^2
+
+Pelec = Pdens*Area;          # mW
+
+plot(V,Pelec,"Voltage (V)","Electrical Power (mW)");
+legend("");
+
+Pelec_max = max(Pelec);
+
+#--------------------------------------------------
+# RESPONSIVIDAD
+#--------------------------------------------------
+
+if(Popt_mW>0){
+    Responsivity = Isc/(Popt_mW*1e-3);
+}else{
+    Responsivity = NaN;
+}
+
+#--------------------------------------------------
+# EFICIENCIA DE CONVERSION
+#--------------------------------------------------
+
+if(Popt_mW>0){
+    eta = 100*Pelec_max/Popt_mW;
+}else{
+    eta = NaN;
+}
+
+#--------------------------------------------------
+# RESULTADOS
+#--------------------------------------------------
+
+? " ";
+? "========== PHOTODETECTOR RESULTS ==========";
+? "Voc = " + num2str(Voc) + " V";
+? "Jsc = " + num2str(Jsc) + " mA/cm^2";
+? "Isc = " + num2str(Isc) + " A";
+? "Electrical Pmax = " + num2str(Pelec_max) + " mW";
+? "Optical Pin = " + num2str(Popt_mW) + " mW";
+? "Efficiency = " + num2str(eta) + " %";
+? "Responsivity = " + num2str(Responsivity) + " A/W";
